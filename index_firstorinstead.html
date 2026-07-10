@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>First, or instead?</title>
+<style>
+  :root {
+    --ink: #1b1b1b;
+    --paper: #ffffff;
+    --grigio-1: #f4f4f2;
+    --grigio-2: #d9d9d5;
+    --grigio-3: #6b6b66;
+    --accento: #1d4d7a;
+    --verde: #2e6b46;
+    --giallo: #9a6d0b;
+    --rosso: #a03a30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.55;
+    font-size: 1.0625rem;
+  }
+  main { max-width: 65ch; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+  h1, h2, .verdetto-parola {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  h1 { font-size: 2rem; margin-bottom: 0.75rem; }
+  h2 { font-size: 1.4rem; margin-bottom: 1rem; }
+  h3 { font-size: 1rem; margin-bottom: 0.4rem; font-family: inherit; }
+  p { margin-bottom: 0.9rem; }
+  .sottotitolo { color: var(--grigio-3); margin-bottom: 2rem; }
+
+  .schermata { display: none; }
+  .schermata.attiva { display: block; }
+  h2[tabindex="-1"]:focus { outline: none; }
+
+  /* Avanzamento */
+  .avanzamento { margin-bottom: 1.5rem; }
+  .avanzamento-testo { font-size: 0.85rem; color: var(--grigio-3); margin-bottom: 0.35rem; }
+  .avanzamento-barra { display: flex; gap: 4px; }
+  .avanzamento-barra span { height: 4px; flex: 1; background: var(--grigio-2); }
+  .avanzamento-barra span.fatto { background: var(--accento); }
+
+  /* Schede scelta */
+  .scelte { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem; }
+  .scheda {
+    display: block; width: 100%; text-align: left;
+    font: inherit; color: inherit;
+    background: var(--paper);
+    border: 1px solid var(--grigio-2);
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .scheda:hover { background: var(--grigio-1); }
+  .scheda[aria-pressed="true"] {
+    border-color: var(--accento);
+    box-shadow: inset 3px 0 0 var(--accento);
+  }
+  button:focus-visible, a:focus-visible, textarea:focus-visible {
+    outline: 3px solid var(--accento);
+    outline-offset: 2px;
+  }
+
+  /* Pulsanti */
+  .pulsante {
+    display: inline-block;
+    font: inherit; cursor: pointer;
+    background: var(--accento); color: #fff;
+    border: 1px solid var(--accento);
+    padding: 0.7rem 1.6rem;
+    border-radius: 2px;
+  }
+  .pulsante:hover { background: #163d61; }
+  .pulsante-secondario {
+    font: inherit; cursor: pointer;
+    background: none; color: var(--accento);
+    border: none; padding: 0.5rem 0;
+    text-decoration: underline;
+  }
+  .riga-navigazione { margin-top: 2rem; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+
+  /* Campo M2 */
+  .campo-blocco { margin: 1rem 0 1.5rem; }
+  .campo-blocco label { display: block; font-weight: 600; margin-bottom: 0.4rem; }
+  .campo-blocco textarea {
+    width: 100%; min-height: 6rem;
+    font: inherit; padding: 0.7rem;
+    border: 1px solid var(--grigio-2); border-radius: 2px;
+  }
+  .avviso-onesta {
+    font-size: 0.95rem; color: var(--grigio-3);
+    border-left: 3px solid var(--grigio-2);
+    padding-left: 0.8rem; margin: 0.8rem 0 1rem;
+  }
+  .errore { color: var(--rosso); font-size: 0.95rem; margin-top: 0.4rem; display: none; }
+  .errore.visibile { display: block; }
+
+  /* Esito */
+  .verdetto { border-left: 8px solid var(--grigio-2); padding: 0.5rem 0 0.5rem 1.1rem; margin-bottom: 1.8rem; }
+  .verdetto.verde  { border-left-color: var(--verde); }
+  .verdetto.giallo { border-left-color: var(--giallo); }
+  .verdetto.rosso  { border-left-color: var(--rosso); }
+  .verdetto-parola { font-size: 1.9rem; display: block; margin-bottom: 0.3rem; }
+  .verdetto p { margin-bottom: 0.4rem; }
+  .verdetto p:last-child { margin-bottom: 0; }
+
+  .blocco-esito { margin-bottom: 1.8rem; }
+  .blocco-esito h3 {
+    font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--grigio-3); margin-bottom: 0.45rem;
+  }
+  .operazione { font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; }
+
+  .nota-confine {
+    background: var(--grigio-1);
+    padding: 0.9rem 1rem;
+    border-radius: 2px;
+    font-size: 0.98rem;
+    margin-bottom: 1.8rem;
+  }
+  .nota-confine h3 { font-size: 0.98rem; color: var(--ink); text-transform: none; letter-spacing: 0; }
+
+  /* Prompt riscritto: elemento firma */
+  .prompt-riscritto {
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    padding: 1.1rem 1.1rem 1.2rem;
+    margin-bottom: 1.8rem;
+    background: var(--paper);
+  }
+  .prompt-riscritto .etichetta { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--grigio-3); margin-bottom: 0.3rem; }
+  .prompt-riscritto .originale { color: var(--grigio-3); text-decoration: line-through; margin-bottom: 0.9rem; }
+  .prompt-riscritto .riformulata {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.05rem;
+    margin-bottom: 1rem;
+  }
+  .conferma-copia { font-size: 0.9rem; color: var(--grigio-3); margin-left: 0.8rem; }
+
+  /* Pannello docenti */
+  .link-docenti { margin-top: 3.5rem; font-size: 0.9rem; }
+  .link-docenti a, .link-docenti button { color: var(--grigio-3); font-size: 0.9rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin: 1rem 0 1.5rem; }
+  th, td { border: 1px solid var(--grigio-2); padding: 0.45rem 0.5rem; text-align: left; vertical-align: top; }
+  th { background: var(--grigio-1); font-weight: 600; }
+  .tabella-scroll { overflow-x: auto; }
+  .legenda { font-size: 0.9rem; color: var(--grigio-3); margin-bottom: 1rem; }
+  .fuori { color: var(--grigio-3); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- Start screen -->
+  <section id="schermata-inizio" class="schermata attiva" aria-labelledby="titolo-inizio">
+    <h1 id="titolo-inizio">First, or instead?</h1>
+    <p class="sottotitolo">You have a task and AI within reach. This tool shows you which part of the work the task wants to build in you, what you lose if you skip it, and how to rewrite the request to keep it.</p>
+    <button class="pulsante" onclick="vaiA('compito')">Start</button>
+    <p class="link-docenti"><button class="pulsante-secondario" onclick="apriPannello()">For teachers and parents</button></p>
+  </section>
+
+  <!-- Step T -->
+  <section id="schermata-compito" class="schermata" aria-labelledby="titolo-compito">
+    <div class="avanzamento" id="avanzamento-compito"></div>
+    <h2 id="titolo-compito" tabindex="-1">What do you have to do?</h2>
+    <div class="scelte" id="scelte-compito"></div>
+    <div class="riga-navigazione">
+      <button class="pulsante-secondario" onclick="vaiA('inizio')">Back</button>
+    </div>
+  </section>
+
+  <!-- Step M -->
+  <section id="schermata-momento" class="schermata" aria-labelledby="titolo-momento">
+    <div class="avanzamento" id="avanzamento-momento"></div>
+    <h2 id="titolo-momento" tabindex="-1">Where are you at?</h2>
+    <div class="scelte" id="scelte-momento"></div>
+    <div class="campo-blocco" id="campo-blocco" hidden>
+      <label for="testo-blocco">Write where you got stuck. Not "I don't get it": the exact point.</label>
+      <textarea id="testo-blocco" oninput="aggiornaConteggio()"></textarea>
+      <p class="avviso-onesta">I can't check if this is true. You can write anything and move on in three seconds. The only person who loses out, if you do, is you.</p>
+      <p class="errore" id="errore-blocco" role="alert">You need at least 40 characters. Describe the exact point.</p>
+      <button class="pulsante" onclick="confermaBlocco()">Next</button>
+    </div>
+    <div class="riga-navigazione">
+      <button class="pulsante-secondario" onclick="vaiA('compito')">Back</button>
+    </div>
+  </section>
+
+  <!-- Step V -->
+  <section id="schermata-richiesta" class="schermata" aria-labelledby="titolo-richiesta">
+    <div class="avanzamento" id="avanzamento-richiesta"></div>
+    <h2 id="titolo-richiesta" tabindex="-1">What would you ask AI?</h2>
+    <div class="scelte" id="scelte-richiesta"></div>
+    <div class="riga-navigazione">
+      <button class="pulsante-secondario" onclick="indietroDaRichiesta()">Back</button>
+    </div>
+  </section>
+
+  <!-- Inconsistency -->
+  <section id="schermata-incoerenza" class="schermata" aria-labelledby="titolo-incoerenza">
+    <h2 id="titolo-incoerenza" tabindex="-1">Hold on</h2>
+    <p>You haven't done anything yet for me to look at. Come back here when you have.</p>
+    <div class="riga-navigazione">
+      <button class="pulsante" onclick="vaiA('momento')">Back to the previous step</button>
+      <button class="pulsante-secondario" onclick="ricomincia()">Start over</button>
+    </div>
+  </section>
+
+  <!-- Outcome -->
+  <section id="schermata-esito" class="schermata" aria-labelledby="titolo-esito">
+    <h2 id="titolo-esito" tabindex="-1" class="visually-hidden" style="position:absolute;left:-9999px;">Outcome</h2>
+    <div id="contenuto-esito"></div>
+    <div class="riga-navigazione">
+      <button class="pulsante-secondario" onclick="vaiA('richiesta')">Change the request</button>
+      <button class="pulsante" onclick="ricomincia()">Start over</button>
+    </div>
+    <p class="link-docenti"><button class="pulsante-secondario" onclick="apriPannello()">For teachers and parents</button></p>
+  </section>
+
+  <!-- Teacher and parent panel -->
+  <section id="schermata-pannello" class="schermata" aria-labelledby="titolo-pannello">
+    <h2 id="titolo-pannello" tabindex="-1">For teachers and parents</h2>
+
+    <p>This tool doesn't decide whether a student can use AI. Given a task, it shows which mental operation that task should build, what gets lost when it's delegated, and how to rephrase the request to AI so it helps without replacing. The underlying thesis: delegating execution is acceptable, delegating thought is not. The difference lies in what happens before the request (an independent attempt) and after it (a check that the student genuinely possesses what was produced).</p>
+
+    <h3>Why it doesn't use a language model</h3>
+    <p>The tool never queries any AI. Asking a model to judge the use of a model would delegate the very judgment the tool is meant to build. The entire logic is a decision tree written in the open in this page's source: anyone can read it, check it, and challenge it. The table below sets it out in full.</p>
+
+    <h3>Why it doesn't verify the stated attempt</h3>
+    <p>When a student states they got stuck at a specific point, the tool asks them to write it down, and it can't check whether that's true. This limit is stated to the student at the exact moment it matters, in these words: you can write anything and move on, the only person who loses out is you. A tool that pretended to verify would teach students how to game verification. Responsibility stays where it actually sits, and the tool says so.</p>
+
+    <h3>Where it connects to existing rules</h3>
+    <p>Article 4 of the EU AI Act requires providers and professional deployers to ensure a sufficient level of AI literacy among the people acting on their behalf. That obligation already exists. The minimum content doesn't: no text says what a student should be able to tell apart. This tool is an attempt to write that content, applied to real tasks.</p>
+    <p>Article 50(2) of the same regulation requires providers of systems that generate synthetic text to mark the output in a machine-readable format. That obligation falls on the provider and concerns the content produced. One level stays uncovered, one no marking can reach: the individual student's choice, in the evening, in front of the homework. This tool works at that level.</p>
+    <p>The Italian Ministry of Education's guidelines, section 4.4 (Awareness and Responsibility), treat autonomous AI use by students as a training question: build awareness and critical judgment, learn to recognize the systems' limits and errors. No obligation, no penalty. This tool stays inside that space and accepts its boundaries.</p>
+    <p>A last note on the European framework. A student opening a chatbot to do homework is using the system for a personal activity, outside any professional context. The regulation's definition of deployer explicitly excludes this case. The regulation's obligations therefore don't reach the student: they apply to whoever provides the system and to whoever uses it in a professional or institutional setting. The student's individual choice stays outside that scope, which is why a tool like this one can only propose a criterion, never enforce it.</p>
+
+    <h3>The full decision table</h3>
+    <p class="legenda">Green: delegating execution. Yellow: delegation allowed under conditions. Red: delegating thought. Inconsistent: the combination sends the student back a step. Cells marked out of matrix aren't selectable in the interface. For task T6 the moment step doesn't appear.</p>
+    <div class="tabella-scroll" id="contenitore-tabella"></div>
+
+    <div class="riga-navigazione">
+      <button class="pulsante" onclick="chiudiPannello()">Back to the tool</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   DATI
+   ============================================================ */
+
+var COMPITI = {
+  T1: { nome: "Understand a concept", op: "building an understanding of your own" },
+  T2: { nome: "Summarize a text, identify the thesis", op: "deciding what matters and what doesn't" },
+  T3: { nome: "Write an essay, a report, an argumentative text", op: "designing the architecture of an argument" },
+  T4: { nome: "Solve exercises with a procedure (math, physics, logic)", op: "applying a rule to a case" },
+  T5: { nome: "Memorize (dates, formulas, vocabulary, verbs)", op: "retrieving information from memory" },
+  T6: { nome: "Clean up the form of finished work (spelling, layout, bibliography, slides)", op: null },
+  T7: { nome: "Translate to or from a foreign language", op: "recognizing structures and choosing among possible renderings" }
+};
+
+var RICHIESTE = {
+  V1: "Explain it to me",
+  V2: "Summarize it for me, tell me the thesis",
+  V3: "Write it for me, give me the outline",
+  V4: "Solve it for me, give me the answer",
+  V5: "Fix the form, improve how it's written",
+  V6: "Look at what I did and tell me where I'm wrong",
+  V7: "Give me more exercises like this to practice on",
+  V8: "Quiz me, ask me questions"
+};
+
+var MOMENTI = {
+  M1: "I haven't started yet",
+  M2: "I tried and I'm stuck at a specific point",
+  M3: "I'm done, I want to check or improve it"
+};
+
+var MATRICE = {
+  T1: ["V1", "V6", "V7", "V8"],
+  T2: ["V1", "V2", "V6", "V8"],
+  T3: ["V3", "V5", "V6", "V8"],
+  T4: ["V1", "V4", "V6", "V7", "V8"],
+  T5: ["V1", "V2", "V3", "V4", "V7", "V8"],
+  T6: ["V5", "V6"],
+  T7: ["V1", "V4", "V6", "V7", "V8"]
+};
+
+/* ============================================================
+   DECISION LOGIC
+   Rules are evaluated in order: the first match wins and later
+   rules are not evaluated.
+   ============================================================ */
+/* LOGIC-START */
+function verdetto(t, v, m) {
+  /* Rule 1: form is not what the task evaluates. */
+  if (t === "T6") return "VERDE";
+
+  /* Rule 2: these requests don't remove work, they add it. */
+  if (v === "V7" || v === "V8") return "VERDE";
+
+  /* Rule 3: a review of the work requires a work. */
+  if (v === "V6") return (m === "M1") ? "INCOERENZA" : "VERDE";
+
+  /* Rule 4: fixing the form requires a text to fix. */
+  if (v === "V5") {
+    if (m === "M3") return "VERDE";
+    if (m === "M2") return "GIALLO";
+    return "INCOERENZA";
+  }
+
+  /* Rule 5: in memorization, retrieval is the operation itself.
+     Explanation stays conditional, for every moment. Getting the
+     answer, summary or outline handed over is equivalent to
+     rereading, even once review is done. */
+  if (t === "T5") return (v === "V1") ? "GIALLO" : "ROSSO";
+
+  /* Rule 6: choosing what matters is already the critical
+     judgment. */
+  if (v === "V2") return (m === "M3") ? "GIALLO" : "ROSSO";
+
+  /* Rule 7: the architecture before the attempt is the most
+     direct form of delegating thought. */
+  if (v === "V3") return (m === "M1") ? "ROSSO" : "GIALLO";
+
+  /* Rule 8: the answer before the attempt skips the rule. */
+  if (v === "V4") {
+    if (m === "M1") return "ROSSO";
+    if (m === "M2") return "GIALLO";
+    return "VERDE";
+  }
+
+  /* Rule 9: an explanation fills a gap once the gap has been
+     found. Once the work is done, recognizing a written
+     explanation is easily mistaken for being able to reproduce
+     it: that's why it stays conditional, on active verification. */
+  if (v === "V1") return (m === "M2") ? "VERDE" : "GIALLO";
+
+  return "INCOERENZA";
+}
+/* LOGIC-END */
+
+/* ============================================================
+   TESTI DI ESITO
+   ============================================================ */
+
+var FRASE_VERDETTO = {
+  VERDE: "You're delegating execution.",
+  GIALLO: "Delegation allowed under conditions.",
+  ROSSO: "Here you're delegating thought."
+};
+
+/* Context line specific to the combination. */
+function contesto(t, v, m, esito) {
+  if (t === "T6") return "Form is not what this task evaluates. The work underneath is already yours, and stays yours.";
+  if (v === "V7") return "Asking for more exercises adds practice to the task. AI is producing extra work for you here, and the effort stays where it needs to be.";
+  if (v === "V8") return "Being quizzed is active retrieval, the way of studying that holds up over time. AI asks the questions, you find the answers.";
+  if (v === "V6") return "You're asking for a look at work that already exists. The diagnosis comes from AI, the decision about what to do with it stays yours.";
+
+  if (t === "T5") {
+    if (v === "V1") return "An explanation gives meaning to what you're memorizing, and that helps you remember. Retrieval, though, stays yours: after the explanation, cover everything and repeat it. The condition is the test below.";
+    return "Retrieval from memory is the operation this task exists to build, even once review is done. Getting handed the answer is equivalent to rereading, and rereading is the method the experimental evidence penalizes when what matters is remembering weeks later. The check that works for memorization is being quizzed.";
+  }
+
+  if (v === "V1") {
+    if (m === "M2") return "You tried, you got stuck at a specific point, and you're asking for help right there. The explanation fills a gap you found on your own.";
+    if (m === "M1") return "Here the answer is a shared fact: you can ask for it even without a prior attempt, at little cost. The condition is checking afterward. Without the test below, the explanation stays AI's.";
+    return "You're done. Watch out for a common trap: recognizing a written explanation feels like understanding it, and the two get confused. The real check is answering, so here the test matters more than the explanation.";
+  }
+
+  if (v === "V2") {
+    if (m === "M3") return "You already summarized it yourself, so you've exercised the judgment about what matters. The comparison works if your summary stays the baseline: ask what's missing and decide yourself whether AI's cut holds up better than yours.";
+    return "Choosing what matters and what can be cut is already the critical judgment this task was meant to build. If AI makes that choice, the task happens without you.";
+  }
+
+  if (v === "V3") {
+    if (m === "M1") return "Asking for the architecture of the work before trying to build it yourself is the most direct form of delegating thought. You're signing your name to a decision someone else made.";
+    if (m === "M2") return "You have an attempt behind you. The condition: keep AI on diagnosing the point where you stopped. The construction stays yours.";
+    return "The structure exists and it's yours. AI can point out the weak spot. The condition: you do the rewriting.";
+  }
+
+  if (v === "V4") {
+    if (m === "M1") return "This task asks you to apply a rule to a case. If the answer arrives before your attempt, the rule never passes through you.";
+    if (m === "M2") return "You tried. The condition: AI can tell you which rule you're missing at that exact point, you reach the final answer yourself.";
+    return "You already have an answer of your own. Comparing it against AI's is a check, and a check closes the work.";
+  }
+
+  if (v === "V5") {
+    return "The text still needs finishing. The condition: limit the correction to the finished part and to the surface, spelling and punctuation. The ideas stay put until you've finished them.";
+  }
+
+  return "";
+}
+
+/* What you lose, per task. Shown only for GIALLO and ROSSO. */
+var PERDITA = {
+  T1: "Building an understanding of your own. An explanation you read and never checked is gone by tomorrow.",
+  T2: "Deciding what matters and what doesn't. That judgment only gets built by choosing it yourself, including the chance of choosing wrong.",
+  T3: "Designing the architecture of an argument. The outline decides what you say and in what order: it's the biggest piece of thinking in the task.",
+  T4: "Applying a rule to a case. The rule sticks when you use it yourself on a concrete case, mistakes included.",
+  T5: "Retrieving information from memory. Every skipped retrieval is a lost review: memory sets when you're tested on it, every time you're tested on it.",
+  T7: "Recognizing structures and choosing among possible renderings. A ready-made translation shows a choice already made, and recognition isn't built by watching."
+};
+
+/* Possession test, per task. */
+var TEST_POSSESSO = {
+  T1: "Close the chat. Explain the concept out loud, without looking, in five sentences or fewer. If you stop, you didn't understand it: you read it.",
+  T2: "Write down what the summary cut, and why that cut makes sense. If you don't know why, the summary isn't yours.",
+  T3: "Close everything. Rewrite your thesis in one sentence, from memory. If you can't, the text isn't yours.",
+  T4: "Redo the exercise from scratch, with different numbers, without looking at the solution.",
+  T5: "Cover everything and write down what you need to remember on a blank sheet. Repeat tomorrow.",
+  T6: "Reread the changes and alter at least one thing AI did that you're not convinced by. If you can't find one, you didn't read them.",
+  T7: "Translate back into the source language without looking at the original. Then compare."
+};
+
+/* Explain-versus-summarize block, shown when the request is V1
+   or V2. */
+var BLOCCO_SPIEGA_RIASSUMI = "\u201CExplain what photosynthesis is\u201D and \u201Csummarize this chapter for me\u201D sound like the same request. They aren't. The first asks for a fact with a shared, settled answer: you either understood it or you didn't, nothing to decide. The second asks AI to choose what to keep and what to cut, and that choice is already a critical judgment, the same one the task wanted to build in you. That's why an explanation can arrive even without a prior attempt, while a summary needs one: there, deciding what's central is the work itself.";
+
+/* ============================================================
+   REWRITTEN PROMPTS
+   One for each task-request pair that can produce GIALLO or
+   ROSSO. The function receives the moment and the stuck-point
+   text and returns { originale, riformulata }.
+   ============================================================ */
+
+function conBlocco(blocco, testo) {
+  if (blocco) return "I got stuck here: \u201C" + blocco + "\u201D. " + testo;
+  return testo;
+}
+
+var RISCRITTURE = {
+  "T1|V1": function (m, b) {
+    var orig = "Explain this topic to me.";
+    if (m === "M1") return { originale: orig, riformulata: "I'm about to study [topic]. Explain it to me in simple words with one example. At the end ask me three questions, one at a time, and don't give me the answers before I try." };
+    return { originale: orig, riformulata: "I've studied [topic]. Don't explain it to me again. Ask me three questions, one at a time, and tell me where my answer doesn't hold up." };
+  },
+  "T2|V1": function (m, b) {
+    var orig = "Explain this text to me.";
+    if (m === "M1") return { originale: orig, riformulata: "I have to read a text on [topic]. Only explain the terms or references I list here: [terms]. I'll read the text myself." };
+    return { originale: orig, riformulata: "I've read the text and I have an idea of the thesis. Only explain this one point that's still unclear to me: [point]. Don't tell me what the thesis is." };
+  },
+  "T2|V2": function (m, b) {
+    var orig = "Summarize this text for me and tell me the thesis.";
+    if (m === "M1") return { originale: orig, riformulata: "I have this text to summarize. Don't summarize it. Ask me three questions about the text that force me to find the central idea myself, one at a time." };
+    if (m === "M2") return { originale: orig, riformulata: conBlocco(b, "I tried to summarize it. Don't summarize it for me. Tell me what kind of information I need to get unstuck at that point, then stop.") };
+    return { originale: orig, riformulata: "I wrote my own summary and I'm pasting it here. Don't rewrite it. Tell me if I left out something you consider central, and why." };
+  },
+  "T3|V3": function (m, b) {
+    var orig = "Write my essay. Give me the outline.";
+    if (m === "M1") return { originale: orig, riformulata: "I need to write an essay on [topic]. Don't write anything and don't make the outline. Ask me five questions about the topic, one at a time, that help me decide what I think." };
+    if (m === "M2") return { originale: orig, riformulata: conBlocco(b, "I'm writing an essay on [topic]. Don't write the missing piece for me. Tell me what kind of move is needed at that point, with a question that gets me moving again.") };
+    return { originale: orig, riformulata: "The essay is finished and I'm pasting it here. Don't rewrite it. Point out the weakest part of the argument and explain why it doesn't hold up." };
+  },
+  "T3|V5": function (m, b) {
+    var orig = "Fix how this is written.";
+    return { originale: orig, riformulata: conBlocco(b, "I'm still writing. I'm only pasting the finished part. Fix the spelling and punctuation of that part. Don't change the sentences and don't add ideas.") };
+  },
+  "T4|V1": function (m, b) {
+    var orig = "Explain how to do these exercises.";
+    if (m === "M1") return { originale: orig, riformulata: "I'm about to do exercises on [topic]. Explain the rule with an example different from my exercises, then stop and let me try." };
+    return { originale: orig, riformulata: "I've finished the exercises. Don't tell me the answers. Only explain the rule for this step that still doesn't add up for me: [step]. I'll check the rest myself." };
+  },
+  "T4|V4": function (m, b) {
+    var orig = "Solve this problem for me.";
+    if (m === "M1") return { originale: orig, riformulata: "I have this problem: [problem text]. Don't solve it and don't give me the answer. Just tell me which piece of data to start from and which rule applies, then stop." };
+    return { originale: orig, riformulata: conBlocco(b, "I tried. Don't give me the final answer. Just tell me which rule justifies the step where I got stuck, and then stop.") };
+  },
+  "T5|V1": function (m, b) {
+    var orig = "Explain the things I have to study.";
+    return { originale: orig, riformulata: conBlocco(b, "I need to memorize [material]. Explain the meaning of what I'm learning with one example. Then quiz me one question at a time, without showing the answer before I try.") };
+  },
+  "T5|V2": function (m, b) {
+    var orig = "Summarize the things I have to study.";
+    return { originale: orig, riformulata: conBlocco(b, "I need to memorize [material]. Don't summarize it. Quiz me with short questions, one at a time. If I'm wrong, just tell me where the mistake is and give me the same question again after a few minutes.") };
+  },
+  "T5|V3": function (m, b) {
+    var orig = "Make me an outline to learn.";
+    return { originale: orig, riformulata: conBlocco(b, "I need to memorize [material]. I'll make the outline myself. Once I've made it I'll paste it here: check if anything's missing, then quiz me on how the parts connect.") };
+  },
+  "T5|V4": function (m, b) {
+    var orig = "Give me the answers.";
+    return { originale: orig, riformulata: conBlocco(b, "I need to remember [material] by heart. Don't give me the answers. Quiz me, and when I can't remember just give me a hint, never the full answer.") };
+  },
+  "T7|V1": function (m, b) {
+    var orig = "Explain how to translate this.";
+    if (m === "M1") return { originale: orig, riformulata: "I'm about to translate a text. Explain how [the grammar structure] works with examples different from my text, then let me try." };
+    return { originale: orig, riformulata: "I've finished my translation. Don't correct it and don't retranslate it. Only explain the rule for this point I'm not convinced by: [point]." };
+  },
+  "T7|V4": function (m, b) {
+    var orig = "Translate this sentence for me.";
+    if (m === "M1") return { originale: orig, riformulata: "I need to translate this sentence: [sentence]. Don't translate it. Just tell me what the main verb is and what structure it requires, then stop." };
+    return { originale: orig, riformulata: conBlocco(b, "I'm translating. Don't give me the translation. Tell me which structure I'm not recognizing at that point, then stop.") };
+  }
+};
+
+function riscrittura(t, v, m, b) {
+  var f = RISCRITTURE[t + "|" + v];
+  if (!f) return null;
+  return f(m, b);
+}
+
+/* ============================================================
+   STATO E NAVIGAZIONE
+   ============================================================ */
+
+var stato = { t: null, m: null, v: null, blocco: "" };
+
+function schermata(id) { return document.getElementById("schermata-" + id); }
+
+function vaiA(id) {
+  var attive = document.querySelectorAll(".schermata.attiva");
+  for (var i = 0; i < attive.length; i++) attive[i].classList.remove("attiva");
+  schermata(id).classList.add("attiva");
+  window.scrollTo(0, 0);
+  var titolo = schermata(id).querySelector("h2, h1");
+  if (titolo && titolo.getAttribute("tabindex") === "-1") titolo.focus();
+  if (id === "compito") disegnaCompiti();
+  if (id === "momento") disegnaMomenti();
+  if (id === "richiesta") disegnaRichieste();
+}
+
+function ricomincia() {
+  stato = { t: null, m: null, v: null, blocco: "" };
+  document.getElementById("testo-blocco").value = "";
+  document.getElementById("campo-blocco").hidden = true;
+  vaiA("inizio");
+}
+
+function passiTotali() { return stato.t === "T6" ? 2 : 3; }
+
+function disegnaAvanzamento(contenitore, passo) {
+  var tot = passiTotali();
+  var el = document.getElementById(contenitore);
+  var html = '<p class="avanzamento-testo">Passo ' + passo + " di " + tot + '</p><div class="avanzamento-barra">';
+  for (var i = 1; i <= tot; i++) html += '<span class="' + (i <= passo ? "fatto" : "") + '"></span>';
+  html += "</div>";
+  el.innerHTML = html;
+}
+
+/* Passo T */
+function disegnaCompiti() {
+  stato.t = stato.t || null;
+  disegnaAvanzamento("avanzamento-compito", 1);
+  var box = document.getElementById("scelte-compito");
+  box.innerHTML = "";
+  Object.keys(COMPITI).forEach(function (id) {
+    var btn = document.createElement("button");
+    btn.className = "scheda";
+    btn.type = "button";
+    btn.textContent = COMPITI[id].nome;
+    btn.setAttribute("aria-pressed", stato.t === id ? "true" : "false");
+    btn.onclick = function () { scegliCompito(id); };
+    box.appendChild(btn);
+  });
+}
+
+function scegliCompito(id) {
+  if (stato.t !== id) {
+    stato.v = null;
+    if (id === "T6") { stato.m = null; stato.blocco = ""; }
+  }
+  stato.t = id;
+  if (id === "T6") vaiA("richiesta");
+  else vaiA("momento");
+}
+
+/* Passo M */
+function disegnaMomenti() {
+  disegnaAvanzamento("avanzamento-momento", 2);
+  var box = document.getElementById("scelte-momento");
+  box.innerHTML = "";
+  Object.keys(MOMENTI).forEach(function (id) {
+    var btn = document.createElement("button");
+    btn.className = "scheda";
+    btn.type = "button";
+    btn.textContent = MOMENTI[id];
+    btn.setAttribute("aria-pressed", stato.m === id ? "true" : "false");
+    btn.onclick = function () { scegliMomento(id); };
+    box.appendChild(btn);
+  });
+  var campo = document.getElementById("campo-blocco");
+  campo.hidden = stato.m !== "M2";
+  document.getElementById("errore-blocco").classList.remove("visibile");
+}
+
+function scegliMomento(id) {
+  if (stato.m !== id) stato.v = null;
+  stato.m = id;
+  if (id === "M2") {
+    disegnaMomenti();
+    document.getElementById("testo-blocco").focus();
+    return;
+  }
+  stato.blocco = "";
+  vaiA("richiesta");
+}
+
+function aggiornaConteggio() {
+  var n = document.getElementById("testo-blocco").value.trim().length;
+  if (n >= 40) document.getElementById("errore-blocco").classList.remove("visibile");
+}
+
+function confermaBlocco() {
+  var testo = document.getElementById("testo-blocco").value.trim();
+  if (testo.length < 40) {
+    document.getElementById("errore-blocco").classList.add("visibile");
+    document.getElementById("testo-blocco").focus();
+    return;
+  }
+  stato.blocco = testo;
+  vaiA("richiesta");
+}
+
+/* Passo V */
+function disegnaRichieste() {
+  disegnaAvanzamento("avanzamento-richiesta", passiTotali());
+  var box = document.getElementById("scelte-richiesta");
+  box.innerHTML = "";
+  MATRICE[stato.t].forEach(function (id) {
+    var btn = document.createElement("button");
+    btn.className = "scheda";
+    btn.type = "button";
+    btn.textContent = RICHIESTE[id];
+    btn.setAttribute("aria-pressed", stato.v === id ? "true" : "false");
+    btn.onclick = function () { scegliRichiesta(id); };
+    box.appendChild(btn);
+  });
+}
+
+function indietroDaRichiesta() {
+  if (stato.t === "T6") vaiA("compito");
+  else vaiA("momento");
+}
+
+function scegliRichiesta(id) {
+  if (MATRICE[stato.t].indexOf(id) === -1) return;
+  stato.v = id;
+  var esito = verdetto(stato.t, stato.v, stato.m);
+  if (esito === "INCOERENZA") { vaiA("incoerenza"); return; }
+  disegnaEsito(esito);
+  vaiA("esito");
+}
+
+/* ============================================================
+   ESITO
+   ============================================================ */
+
+function el(tag, classe, testo) {
+  var e = document.createElement(tag);
+  if (classe) e.className = classe;
+  if (testo) e.textContent = testo;
+  return e;
+}
+
+function disegnaEsito(esito) {
+  var t = stato.t, v = stato.v, m = stato.m;
+  var box = document.getElementById("contenuto-esito");
+  box.innerHTML = "";
+
+  /* 1. Verdict */
+  var blocco = el("div", "verdetto " + esito.toLowerCase());
+  var etichettaVerdetto = { VERDE: "Green", GIALLO: "Yellow", ROSSO: "Red" }[esito];
+  var parola = el("span", "verdetto-parola", etichettaVerdetto);
+  blocco.appendChild(parola);
+  blocco.appendChild(el("p", null, FRASE_VERDETTO[esito]));
+  blocco.appendChild(el("p", null, contesto(t, v, m, esito)));
+  box.appendChild(blocco);
+
+  /* 2. What the task was meant to build */
+  var sez = el("div", "blocco-esito");
+  sez.appendChild(el("h3", null, "What this task builds"));
+  if (t === "T6") {
+    sez.appendChild(el("p", "operazione", "No operation to protect here. Form is not what this task evaluates."));
+  } else {
+    var op = COMPITI[t].op;
+    sez.appendChild(el("p", "operazione", op.charAt(0).toUpperCase() + op.slice(1) + "."));
+  }
+  box.appendChild(sez);
+
+  /* 3. What you lose (GIALLO and ROSSO only) */
+  if (esito === "GIALLO" || esito === "ROSSO") {
+    var perdi = el("div", "blocco-esito");
+    perdi.appendChild(el("h3", null, "What you lose by delegating"));
+    perdi.appendChild(el("p", null, PERDITA[t]));
+    box.appendChild(perdi);
+  }
+
+  /* Explain-versus-summarize block */
+  if (v === "V1" || v === "V2") {
+    var nota = el("div", "nota-confine");
+    nota.appendChild(el("h3", null, "Explain and summarize sound the same"));
+    nota.appendChild(el("p", null, BLOCCO_SPIEGA_RIASSUMI));
+    box.appendChild(nota);
+  }
+
+  /* 4. Rewritten prompt (GIALLO and ROSSO only) */
+  if (esito === "GIALLO" || esito === "ROSSO") {
+    var r = riscrittura(t, v, m, stato.blocco);
+    if (r) {
+      var wrap = el("div", "blocco-esito");
+      if (esito === "ROSSO") {
+        wrap.appendChild(el("p", null, "You can do it anyway. Nothing stops you. But if you do, here's what you're losing: " + COMPITI[t].op + ". If you want to keep it, ask this way instead."));
+      }
+      var pr = el("div", "prompt-riscritto");
+      pr.appendChild(el("p", "etichetta", "Don't ask it like this"));
+      pr.appendChild(el("p", "originale", "\u201C" + r.originale + "\u201D"));
+      pr.appendChild(el("p", "etichetta", "Ask it like this"));
+      var rif = el("p", "riformulata", "\u201C" + r.riformulata + "\u201D");
+      rif.id = "testo-riformulato";
+      pr.appendChild(rif);
+      var copia = el("button", "pulsante", "Copy");
+      copia.type = "button";
+      copia.onclick = function () { copiaPrompt(r.riformulata, copia); };
+      pr.appendChild(copia);
+      var conferma = el("span", "conferma-copia", "");
+      conferma.id = "conferma-copia";
+      conferma.setAttribute("role", "status");
+      pr.appendChild(conferma);
+      wrap.appendChild(pr);
+      box.appendChild(wrap);
+    }
+  }
+
+  /* 5. Possession test (requests V1..V5) */
+  if (["V1", "V2", "V3", "V4", "V5"].indexOf(v) !== -1) {
+    var test = el("div", "blocco-esito");
+    if (esito === "VERDE") {
+      test.appendChild(el("h3", null, "The last step"));
+      test.appendChild(el("p", null, "The delegation is fine. What's left is the last step, and it's yours."));
+    } else {
+      test.appendChild(el("h3", null, "The possession test"));
+      test.appendChild(el("p", null, "This is the condition that makes the delegation acceptable."));
+    }
+    test.appendChild(el("p", "operazione", TEST_POSSESSO[t]));
+    box.appendChild(test);
+  }
+}
+
+function copiaPrompt(testo, bottone) {
+  var conferma = document.getElementById("conferma-copia");
+  function ok() { conferma.textContent = "Copied."; }
+  function fallback() {
+    var area = document.createElement("textarea");
+    area.value = testo;
+    area.setAttribute("readonly", "");
+    area.style.position = "absolute";
+    area.style.left = "-9999px";
+    document.body.appendChild(area);
+    area.select();
+    try {
+      var riuscito = document.execCommand("copy");
+      conferma.textContent = riuscito ? "Copied." : "Select the text and copy it by hand.";
+    } catch (e) {
+      conferma.textContent = "Select the text and copy it by hand.";
+    }
+    document.body.removeChild(area);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(testo).then(ok, fallback);
+  } else {
+    fallback();
+  }
+}
+
+/* ============================================================
+   PANNELLO DOCENTI
+   ============================================================ */
+
+var schermataPrecedente = "inizio";
+
+function apriPannello() {
+  var attiva = document.querySelector(".schermata.attiva");
+  if (attiva) schermataPrecedente = attiva.id.replace("schermata-", "");
+  disegnaTabella();
+  vaiA("pannello");
+}
+
+function chiudiPannello() { vaiA(schermataPrecedente); }
+
+function disegnaTabella() {
+  var cont = document.getElementById("contenitore-tabella");
+  var html = "<table><caption style=\"text-align:left;font-size:0.9rem;color:var(--grigio-3);padding-bottom:0.5rem;\">Outcomes by task, request, and moment (M1 not started, M2 stuck, M3 done).</caption><thead><tr><th scope=\"col\">Task</th>";
+  Object.keys(RICHIESTE).forEach(function (v) { html += "<th scope=\"col\">" + v + "</th>"; });
+  html += "</tr></thead><tbody>";
+  Object.keys(COMPITI).forEach(function (t) {
+    html += "<tr><th scope=\"row\">" + t + "</th>";
+    Object.keys(RICHIESTE).forEach(function (v) {
+      if (MATRICE[t].indexOf(v) === -1) {
+        html += "<td class=\"fuori\">out of matrix</td>";
+      } else if (t === "T6") {
+        html += "<td>" + etichettaEsito(verdetto(t, v, null)) + " (no M step)</td>";
+      } else {
+        var parti = ["M1", "M2", "M3"].map(function (m) {
+          return m + " " + etichettaEsito(verdetto(t, v, m));
+        });
+        html += "<td>" + parti.join("<br>") + "</td>";
+      }
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+  cont.innerHTML = html;
+}
+
+function etichettaEsito(e) {
+  if (e === "VERDE") return "Green";
+  if (e === "GIALLO") return "Yellow";
+  if (e === "ROSSO") return "Red";
+  return "Inconsistent";
+}
+</script>
+</body>
+</html>
